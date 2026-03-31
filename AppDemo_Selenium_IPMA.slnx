@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Controller/">
+    <File Path="MeteorologiaController.cs" />
+  </Folder>
+  <Folder Name="/Model/">
+    <File Path="DadosMeteorologicos.cs" />
+  </Folder>
+  <Folder Name="/View/">
+    <File Path="MeteorologiaView.cs" />
+  </Folder>
+  <Project Path="AppDemo_Selenium_IPMA.csproj" />
+</Solution>
