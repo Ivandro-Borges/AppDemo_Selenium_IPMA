@@ -1,4 +1,5 @@
 # AppDemo_Selenium_IPMA
+Uma aplicação demonstradora que extrai os dados de um site de meteorologia usando a API Selenium WebDriver
 
 ## Descrição
 Aplicação demonstradora desenvolvida no âmbito da unidade curricular **Laboratório de Desenvolvimento de Software** da Universidade Aberta.
@@ -28,8 +29,13 @@ AppDemo_Selenium_IPMA/
 
 ## Como executar
 1. Clonar o repositório
-2. Instalar as dependências via NuGet
-3. Executar o projeto no Visual Studio
+2. Garantir que o .NET 8 está instalado
+3. Executar:
+```bash
+   dotnet restore
+   dotnet run
+```
+4. Certificar-se de que o Google Chrome está instalado
 
 ## Estado do projeto
 🚧 Em desenvolvimento
