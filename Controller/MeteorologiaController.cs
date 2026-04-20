@@ -10,11 +10,14 @@ namespace AppDemo_Selenium_IPMA.Controller
     public class MeteorologiaController
     {
         private readonly MeteorologiaView _view;
+        public event Action<DadosMeteorologicos>? DadosObtidos;
+        public event Action<string>? ErroOcorrido;
 
-        public MeteorologiaController()
+        public MeteorologiaController(MeteorologiaView view)
         {
-            _view = new MeteorologiaView();
+            _view = view;
         }
+
 
         public void Executar()
         {
@@ -29,28 +32,52 @@ namespace AppDemo_Selenium_IPMA.Controller
                 // Clicar em "Previsão Localidade"
                 driver.FindElement(By.ClassName("ic_target")).Click();
 
-                // Selecionar distrito "Porto"
+                // Selecionar distrito (input do utilizador)
                 var selectDistrict = new SelectElement(driver.FindElement(By.Id("district")));
-                selectDistrict.SelectByValue("Porto");
+                string distritoInput = _view.PedirDistrito();
+
+                var distritoOption = selectDistrict.Options
+                    .FirstOrDefault(opt => opt.Text.Trim()
+                    .Equals(distritoInput, StringComparison.OrdinalIgnoreCase));
+
+                if (distritoOption is null)
+                {
+                    ErroOcorrido?.Invoke("Distrito não encontrado.");
+                    return;
+                }
+
+                selectDistrict.SelectByText(distritoOption.Text);
 
                 // Aguarda atualização 2ª dropdown até obter valor da localidade pretendida
                 var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
 
-                var selectLocation = wait.Until(driver =>
+                var selectLocation = wait.Until(d =>
                 {
-                    var select = new SelectElement(driver.FindElement(By.Id("locations")));
+                    var select = new SelectElement(d.FindElement(By.Id("locations")));
 
-                    if (select.Options.Any(opt => opt.GetAttribute("Value") == "1131100"))
-                        return select;
-
-                    return null;
-
+                    return select.Options.Any(opt =>
+                        !string.IsNullOrWhiteSpace(opt.GetAttribute("value")))
+                        ? select
+                        : null;
                 });
+
+                // Pedir cidade ao utilizador
+                string cidadeInput = _view.PedirCidade();
+
+                var cidadeOption = selectLocation.Options
+                    .FirstOrDefault(opt =>
+                        !string.IsNullOrWhiteSpace(opt.GetAttribute("value")) &&
+                        opt.Text.Trim().Equals(cidadeInput, StringComparison.OrdinalIgnoreCase));
+
+                if (cidadeOption is null)
+                {
+                    ErroOcorrido?.Invoke("Cidade não encontrada para o distrito indicado.");
+                    return;
+                }
 
                 var oldHeader = driver.FindElement(By.CssSelector(".local-header")).Text;
 
-                // Selecionar localidade "Penafiel"
-                selectLocation.SelectByValue("1131100");
+                selectLocation.SelectByText(cidadeOption.Text);
 
                 // Aguarda atualização do header com a localidade selecionada
                 wait.Until(d =>
@@ -67,19 +94,12 @@ namespace AppDemo_Selenium_IPMA.Controller
                     }
                 });
 
-                // Obter CIDADE
-                var headerText = driver.FindElement(By.CssSelector(".local-header")).Text;
-                string city = headerText.Split(',').Last().Trim();
-                city = string.IsNullOrWhiteSpace(city) ? "Indisponível" : city;
+                // Obter CIDADE (cidade selecionada e validada)
+                string city = cidadeOption.Text.Trim(); city = string.IsNullOrWhiteSpace(city) ? "Indisponível" : city;
 
 
                 // Obter elemento referente ao dia atual
                 var activeWeekElement = driver.FindElement(By.CssSelector(".weekly-column.active"));
-
-                // Obter DATA
-                var date = activeWeekElement.FindElement(By.ClassName("date")).Text;
-                date = string.IsNullOrWhiteSpace(date) ? "Indisponível" : date;
-
 
                 // Obter TEMPERATURAS
                 var tempMin = activeWeekElement.FindElement(By.ClassName("tempMin")).Text;
@@ -119,9 +139,6 @@ namespace AppDemo_Selenium_IPMA.Controller
                     rain = "Indisponível";
                 }
 
-                // Fechar o browser
-                driver.Quit();
-
                 DadosMeteorologicos dados = new DadosMeteorologicos()
                 {
                     Cidade = city,
@@ -130,15 +147,21 @@ namespace AppDemo_Selenium_IPMA.Controller
                     Precipitacao = rain
                 };
 
-                _view.MostrarDados(dados);
-
+                DadosObtidos?.Invoke(dados);
 
             }
-            catch (Exception ex)
+            catch (WebDriverTimeoutException)
             {
-                _view.MostrarErro(ex.Message);
+                ErroOcorrido?.Invoke("Não foi possível carregar as cidades para o distrito indicado.");
             }
-            finally { driver?.Quit(); }
+            catch (Exception)
+            {
+                ErroOcorrido?.Invoke("Ocorreu um erro ao obter os dados meteorológicos.");
+            }
+            finally
+            {
+                driver?.Quit(); // Fechar o browser
+            }
         }
     }
 }

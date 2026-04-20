@@ -2,9 +2,9 @@
 {
     public class DadosMeteorologicos
     {
-        public string Cidade { get; set; }
-        public string Temperatura { get; set; }
-        public string Vento { get; set; }
-        public string Precipitacao { get; set; }
+        public string Cidade { get; set; } = string.Empty;
+        public string Temperatura { get; set; } = string.Empty;
+        public string Vento { get; set; } = string.Empty;
+        public string Precipitacao { get; set; } = string.Empty;
     }
 }
