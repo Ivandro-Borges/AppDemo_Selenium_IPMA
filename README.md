@@ -1,5 +1,5 @@
 # AppDemo_Selenium_IPMA
-Uma aplicação demonstradora que extrai os dados de um site de meteorologia usando a API Selenium WebDriver
+Uma aplicação demonstradora que extrai os dados do site de meteorologia IPMA usando a API Selenium WebDriver com base na localização(distrito/cidade) de Portugal fornecida pelo utilizador.
 
 ## Descrição
 Aplicação demonstradora desenvolvida no âmbito da unidade curricular **Laboratório de Desenvolvimento de Software** da Universidade Aberta.
@@ -26,7 +26,7 @@ AppDemo_Selenium_IPMA/
 | Ivandro | Líder |
 | Nathalia | Verificadora |
 | António | Desenvolvedor |
-
+| Eber Felipe | Desenvolvedor |
 ## Como executar
 1. Clonar o repositório
 2. Garantir que o .NET 8 está instalado
