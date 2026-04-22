@@ -1,7 +1,11 @@
-﻿namespace AppDemo_Selenium_IPMA.View
+﻿using System.Globalization;
+
+namespace AppDemo_Selenium_IPMA.View
 {
     public class MeteorologiaView
     {
+        private static readonly TextInfo PtTextInfo =
+            CultureInfo.GetCultureInfo("pt-PT").TextInfo;
 
         public string PedirDistrito()
         {
@@ -11,7 +15,7 @@
                 string? input = Console.ReadLine()?.Trim();
 
                 if (!string.IsNullOrWhiteSpace(input))
-                    return input;
+                    return Normalizar(input);
 
                 Console.WriteLine("[ERRO] O distrito não pode estar vazio.");
             }
@@ -25,11 +29,14 @@
                 string? input = Console.ReadLine()?.Trim();
 
                 if (!string.IsNullOrWhiteSpace(input))
-                    return input;
+                    return Normalizar(input);
 
                 Console.WriteLine("[ERRO] A cidade não pode estar vazia.");
             }
         }
+
+        private static string Normalizar(string input) =>
+            PtTextInfo.ToTitleCase(input.ToLower(CultureInfo.GetCultureInfo("pt-PT")));
 
         public void MostrarDados(Model.DadosMeteorologicos dados)
         {
