@@ -10,8 +10,6 @@ namespace AppDemo_Selenium_IPMA.Controller
     public class MeteorologiaController
     {
         private readonly MeteorologiaView _view;
-        public event Action<DadosMeteorologicos>? DadosObtidos;
-        public event Action<string>? ErroOcorrido;
 
         public MeteorologiaController(MeteorologiaView view)
         {
@@ -42,7 +40,7 @@ namespace AppDemo_Selenium_IPMA.Controller
 
                 if (distritoOption is null)
                 {
-                    ErroOcorrido?.Invoke("Distrito não encontrado.");
+                    _view.MostrarErro("Distrito não encontrado.");
                     return;
                 }
 
@@ -71,7 +69,7 @@ namespace AppDemo_Selenium_IPMA.Controller
 
                 if (cidadeOption is null)
                 {
-                    ErroOcorrido?.Invoke("Cidade não encontrada para o distrito indicado.");
+                    _view.MostrarErro("Cidade não encontrada para o distrito indicado.");
                     return;
                 }
 
@@ -147,16 +145,16 @@ namespace AppDemo_Selenium_IPMA.Controller
                     Precipitacao = rain
                 };
 
-                DadosObtidos?.Invoke(dados);
+                _view.MostrarDados(dados);
 
             }
             catch (WebDriverTimeoutException)
             {
-                ErroOcorrido?.Invoke("Não foi possível carregar as cidades para o distrito indicado.");
+                _view.MostrarErro("Não foi possível carregar as cidades para o distrito indicado.");
             }
             catch (Exception)
             {
-                ErroOcorrido?.Invoke("Ocorreu um erro ao obter os dados meteorológicos.");
+                _view.MostrarErro("Ocorreu um erro ao obter os dados meteorológicos.");
             }
             finally
             {
