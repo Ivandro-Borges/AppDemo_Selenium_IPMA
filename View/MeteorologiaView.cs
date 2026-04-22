@@ -35,6 +35,10 @@ namespace AppDemo_Selenium_IPMA.View
             }
         }
 
+        // ToTitleCase em .NET não altera palavras já em uppercase (ex.: "LISBOA"
+        // permanece "LISBOA"), por isso reduz-se primeiro para minúsculas usando
+        // a cultura pt-PT, para que "LISBOA", "lisboa" e "lISBOA" convirjam em
+        // "Lisboa" — a forma esperada pelos dropdowns do site do IPMA.
         private static string Normalizar(string input) =>
             PtTextInfo.ToTitleCase(input.ToLower(CultureInfo.GetCultureInfo("pt-PT")));
 

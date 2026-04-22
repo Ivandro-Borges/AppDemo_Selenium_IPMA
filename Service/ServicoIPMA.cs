@@ -22,6 +22,9 @@ namespace AppDemo_Selenium_IPMA.Service
             try
             {
                 driver.Navigate().GoToUrl(IpmaUrl);
+
+                // "ic_target" é o ícone que encaminha para a secção de previsão
+                // por localidade (entrada no fluxo de pesquisa distrito → cidade).
                 driver.FindElement(By.ClassName("ic_target")).Click();
 
                 var selectDistrict = new SelectElement(driver.FindElement(By.Id("district")));
@@ -32,6 +35,10 @@ namespace AppDemo_Selenium_IPMA.Service
 
                 selectDistrict.SelectByText(distritoOption.Text);
 
+                // O dropdown de cidades é preenchido via JavaScript após a escolha
+                // do distrito, por isso é necessário aguardar até que surja pelo
+                // menos uma opção com value não vazio (opções com value vazio são
+                // apenas placeholders do estado inicial).
                 var wait = new WebDriverWait(driver, WaitTimeout);
                 var selectLocation = wait.Until(d =>
                 {
@@ -49,6 +56,9 @@ namespace AppDemo_Selenium_IPMA.Service
                     ?? throw new LocalNaoEncontradoException(
                         "Cidade não encontrada para o distrito indicado.");
 
+                // Espera até que o cabeçalho ".local-header" reflita a nova
+                // localidade selecionada, garantindo que os dados apresentados
+                // correspondem efetivamente à cidade pedida pelo utilizador.
                 var oldHeader = driver.FindElement(By.CssSelector(".local-header")).Text;
                 selectLocation.SelectByText(cidadeOption.Text);
 
@@ -69,10 +79,18 @@ namespace AppDemo_Selenium_IPMA.Service
             }
             finally
             {
+                // driver.Quit() apenas no finally: garante fecho do browser mesmo
+                // quando as exceções de domínio (LocalNaoEncontradoException) ou
+                // falhas do Selenium sobem para o Controller.
                 driver.Quit();
             }
         }
 
+        // Configuração do Chrome em modo headless. "--headless=new" ativa o
+        // headless moderno (Chrome 109+) que renderiza a página de forma
+        // equivalente ao modo visível; "--disable-gpu" evita warnings em
+        // ambientes sem GPU (ex.: CI); "--window-size" garante dimensões
+        // consistentes para que os elementos do IPMA sejam encontrados.
         private static ChromeOptions CriarOpcoes()
         {
             var options = new ChromeOptions();
