@@ -16,6 +16,19 @@ namespace AppDemo_Selenium_IPMA.Service
         private const string IpmaUrl = "https://www.ipma.pt";
         private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
 
+        private readonly bool _headless;
+
+        /// <summary>
+        /// Cria o serviço IPMA. Por omissão o Chrome corre em modo headless para
+        /// que o utilizador final não veja o browser a abrir (requisito de UX
+        /// da equipa). Para efeitos de debug, passar <paramref name="headless"/>
+        /// como <c>false</c> faz o Chrome abrir em modo visível.
+        /// </summary>
+        public ServicoIPMA(bool headless = true)
+        {
+            _headless = headless;
+        }
+
         public DadosMeteorologicos ObterDados(string distrito, string cidade)
         {
             IWebDriver driver = new ChromeDriver(CriarOpcoes());
@@ -86,16 +99,19 @@ namespace AppDemo_Selenium_IPMA.Service
             }
         }
 
-        // Configuração do Chrome em modo headless. "--headless=new" ativa o
-        // headless moderno (Chrome 109+) que renderiza a página de forma
-        // equivalente ao modo visível; "--disable-gpu" evita warnings em
-        // ambientes sem GPU (ex.: CI); "--window-size" garante dimensões
-        // consistentes para que os elementos do IPMA sejam encontrados.
-        private static ChromeOptions CriarOpcoes()
+        // Configuração do Chrome. Em headless: "--headless=new" ativa o headless
+        // moderno (Chrome 109+) que renderiza a página de forma equivalente ao
+        // modo visível; "--disable-gpu" evita warnings em ambientes sem GPU
+        // (ex.: CI); "--window-size" garante dimensões consistentes para que os
+        // elementos do IPMA sejam encontrados independentemente do tamanho do ecrã.
+        private ChromeOptions CriarOpcoes()
         {
             var options = new ChromeOptions();
-            options.AddArgument("--headless=new");
-            options.AddArgument("--disable-gpu");
+            if (_headless)
+            {
+                options.AddArgument("--headless=new");
+                options.AddArgument("--disable-gpu");
+            }
             options.AddArgument("--window-size=1920,1080");
             return options;
         }
