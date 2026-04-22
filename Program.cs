@@ -1,7 +1,9 @@
 using AppDemo_Selenium_IPMA.Controller;
+using AppDemo_Selenium_IPMA.Service;
 using AppDemo_Selenium_IPMA.View;
 
-MeteorologiaView view = new MeteorologiaView();
-MeteorologiaController controller = new MeteorologiaController(view);
+var view = new MeteorologiaView();
+var servicoIPMA = new ServicoIPMA();
+var controller = new MeteorologiaController(view, servicoIPMA);
 
 controller.Executar();
