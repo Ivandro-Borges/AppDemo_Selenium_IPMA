@@ -50,7 +50,21 @@ namespace AppDemo_Selenium_IPMA.Service
                 // por localidade (entrada no fluxo de pesquisa distrito → cidade).
                 driver.FindElement(By.ClassName("ic_target")).Click();
 
-                var selectDistrict = new SelectElement(driver.FindElement(By.Id("district")));
+                // O dropdown #district tambem e preenchido por JavaScript apos o
+                // clique em .ic_target — no estado inicial so existe o placeholder
+                // '--' com value vazio. E necessario aguardar ate aparecer pelo
+                // menos uma opcao com value preenchido, caso contrario qualquer
+                // distrito (mesmo "Lisboa") seria reportado como nao encontrado.
+                var wait = new WebDriverWait(driver, WaitTimeout);
+                var selectDistrict = wait.Until(d =>
+                {
+                    var select = new SelectElement(d.FindElement(By.Id("district")));
+                    return select.Options.Any(opt =>
+                        !string.IsNullOrWhiteSpace(opt.GetAttribute("value")))
+                        ? select
+                        : null;
+                });
+
                 var distritoOption = selectDistrict.Options
                     .FirstOrDefault(opt => MesmoNome(opt.Text, distrito))
                     ?? throw new LocalNaoEncontradoException("Distrito não encontrado.");
@@ -61,7 +75,6 @@ namespace AppDemo_Selenium_IPMA.Service
                 // do distrito, por isso é necessário aguardar até que surja pelo
                 // menos uma opção com value não vazio (opções com value vazio são
                 // apenas placeholders do estado inicial).
-                var wait = new WebDriverWait(driver, WaitTimeout);
                 var selectLocation = wait.Until(d =>
                 {
                     var select = new SelectElement(d.FindElement(By.Id("locations")));
@@ -95,6 +108,17 @@ namespace AppDemo_Selenium_IPMA.Service
                     {
                         return false;
                     }
+                });
+
+                // O cabecalho atualiza primeiro que a tabela semanal — em
+                // localidades menores (ex.: Agueda) chega-se a ler ".local-header"
+                // novo enquanto ".weekly-column.active" ainda nao foi renderizado,
+                // o que provoca NoSuchElementException em ExtrairDados. Aguardar
+                // explicitamente pela coluna ativa torna a extracao deterministica.
+                wait.Until(d =>
+                {
+                    try { return d.FindElement(By.CssSelector(".weekly-column.active")) != null; }
+                    catch { return false; }
                 });
 
                 return ExtrairDados(driver, cidadeOption.Text);
