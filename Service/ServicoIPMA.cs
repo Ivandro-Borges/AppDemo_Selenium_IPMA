@@ -2,6 +2,7 @@ using AppDemo_Selenium_IPMA.Model;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace AppDemo_Selenium_IPMA.Service
@@ -11,10 +12,19 @@ namespace AppDemo_Selenium_IPMA.Service
     /// via Selenium WebDriver. Mantém o Controller independente dos detalhes
     /// de scraping, reforçando o baixo acoplamento entre componentes.
     /// </summary>
-    public class ServicoIPMA
+    public class ServicoIPMA : IServicoIPMA
     {
         private const string IpmaUrl = "https://www.ipma.pt";
         private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
+
+        // Comparador pt-PT que ignora maiúsculas/minúsculas e diacríticos
+        // (IgnoreNonSpace) para que o utilizador possa escrever "agueda" e
+        // ainda assim casar com "Águeda" no dropdown do IPMA. Resolve também
+        // variações como "sao" vs "São" em localidades como "São João da Madeira".
+        private static readonly CompareInfo PtCompare =
+            CultureInfo.GetCultureInfo("pt-PT").CompareInfo;
+        private const CompareOptions NomeCompareOpts =
+            CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace;
 
         private readonly bool _headless;
 
@@ -42,8 +52,7 @@ namespace AppDemo_Selenium_IPMA.Service
 
                 var selectDistrict = new SelectElement(driver.FindElement(By.Id("district")));
                 var distritoOption = selectDistrict.Options
-                    .FirstOrDefault(opt => opt.Text.Trim()
-                        .Equals(distrito, StringComparison.OrdinalIgnoreCase))
+                    .FirstOrDefault(opt => MesmoNome(opt.Text, distrito))
                     ?? throw new LocalNaoEncontradoException("Distrito não encontrado.");
 
                 selectDistrict.SelectByText(distritoOption.Text);
@@ -65,7 +74,7 @@ namespace AppDemo_Selenium_IPMA.Service
                 var cidadeOption = selectLocation.Options
                     .FirstOrDefault(opt =>
                         !string.IsNullOrWhiteSpace(opt.GetAttribute("value")) &&
-                        opt.Text.Trim().Equals(cidade, StringComparison.OrdinalIgnoreCase))
+                        MesmoNome(opt.Text, cidade))
                     ?? throw new LocalNaoEncontradoException(
                         "Cidade não encontrada para o distrito indicado.");
 
@@ -98,6 +107,12 @@ namespace AppDemo_Selenium_IPMA.Service
                 driver.Quit();
             }
         }
+
+        // Compara dois nomes de localidade ignorando capitalização e acentos,
+        // recorrendo ao CompareInfo de pt-PT. Necessário porque o utilizador
+        // pode escrever "agueda" sem acento, enquanto o IPMA expõe "Águeda".
+        private static bool MesmoNome(string a, string b) =>
+            PtCompare.Compare(a.Trim(), b.Trim(), NomeCompareOpts) == 0;
 
         // Configuração do Chrome. Em headless: "--headless=new" ativa o headless
         // moderno (Chrome 109+) que renderiza a página de forma equivalente ao

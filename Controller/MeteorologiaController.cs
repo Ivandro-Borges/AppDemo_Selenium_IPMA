@@ -7,9 +7,9 @@ namespace AppDemo_Selenium_IPMA.Controller
     public class MeteorologiaController
     {
         private readonly MeteorologiaView _view;
-        private readonly ServicoIPMA _servicoIPMA;
+        private readonly IServicoIPMA _servicoIPMA;
 
-        public MeteorologiaController(MeteorologiaView view, ServicoIPMA servicoIPMA)
+        public MeteorologiaController(MeteorologiaView view, IServicoIPMA servicoIPMA)
         {
             _view = view;
             _servicoIPMA = servicoIPMA;
