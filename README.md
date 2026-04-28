@@ -37,5 +37,21 @@ AppDemo_Selenium_IPMA/
 ```
 4. Certificar-se de que o Google Chrome está instalado
 
+## Modo debug (browser visível)
+Por omissão, o `ServicoIPMA` corre o Chrome em modo *headless* (sem janela), de forma a que o utilizador final não veja o browser a abrir durante a recolha dos dados.
+
+Para efeitos de **debug** ou demonstração — observar a navegação no site do IPMA passo a passo — basta instanciar o serviço com `headless: false` no `Program.cs`:
+
+```csharp
+// Program.cs
+var view = new MeteorologiaView();
+var servicoIPMA = new ServicoIPMA(headless: false); // browser visível
+var controller = new MeteorologiaController(view, servicoIPMA);
+
+controller.Executar();
+```
+
+Voltar a `new ServicoIPMA()` (ou `new ServicoIPMA(headless: true)`) para o comportamento normal.
+
 ## Estado do projeto
 🚧 Em desenvolvimento
