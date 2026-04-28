@@ -2,6 +2,7 @@ using AppDemo_Selenium_IPMA.Model;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace AppDemo_Selenium_IPMA.Service
@@ -11,10 +12,19 @@ namespace AppDemo_Selenium_IPMA.Service
     /// via Selenium WebDriver. Mantém o Controller independente dos detalhes
     /// de scraping, reforçando o baixo acoplamento entre componentes.
     /// </summary>
-    public class ServicoIPMA
+    public class ServicoIPMA : IServicoIPMA
     {
         private const string IpmaUrl = "https://www.ipma.pt";
         private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
+
+        // Comparador pt-PT que ignora maiúsculas/minúsculas e diacríticos
+        // (IgnoreNonSpace) para que o utilizador possa escrever "agueda" e
+        // ainda assim casar com "Águeda" no dropdown do IPMA. Resolve também
+        // variações como "sao" vs "São" em localidades como "São João da Madeira".
+        private static readonly CompareInfo PtCompare =
+            CultureInfo.GetCultureInfo("pt-PT").CompareInfo;
+        private const CompareOptions NomeCompareOpts =
+            CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace;
 
         private readonly bool _headless;
 
@@ -40,10 +50,23 @@ namespace AppDemo_Selenium_IPMA.Service
                 // por localidade (entrada no fluxo de pesquisa distrito → cidade).
                 driver.FindElement(By.ClassName("ic_target")).Click();
 
-                var selectDistrict = new SelectElement(driver.FindElement(By.Id("district")));
+                // O dropdown #district tambem e preenchido por JavaScript apos o
+                // clique em .ic_target — no estado inicial so existe o placeholder
+                // '--' com value vazio. E necessario aguardar ate aparecer pelo
+                // menos uma opcao com value preenchido, caso contrario qualquer
+                // distrito (mesmo "Lisboa") seria reportado como nao encontrado.
+                var wait = new WebDriverWait(driver, WaitTimeout);
+                var selectDistrict = wait.Until(d =>
+                {
+                    var select = new SelectElement(d.FindElement(By.Id("district")));
+                    return select.Options.Any(opt =>
+                        !string.IsNullOrWhiteSpace(opt.GetAttribute("value")))
+                        ? select
+                        : null;
+                });
+
                 var distritoOption = selectDistrict.Options
-                    .FirstOrDefault(opt => opt.Text.Trim()
-                        .Equals(distrito, StringComparison.OrdinalIgnoreCase))
+                    .FirstOrDefault(opt => MesmoNome(opt.Text, distrito))
                     ?? throw new LocalNaoEncontradoException("Distrito não encontrado.");
 
                 selectDistrict.SelectByText(distritoOption.Text);
@@ -52,7 +75,6 @@ namespace AppDemo_Selenium_IPMA.Service
                 // do distrito, por isso é necessário aguardar até que surja pelo
                 // menos uma opção com value não vazio (opções com value vazio são
                 // apenas placeholders do estado inicial).
-                var wait = new WebDriverWait(driver, WaitTimeout);
                 var selectLocation = wait.Until(d =>
                 {
                     var select = new SelectElement(d.FindElement(By.Id("locations")));
@@ -65,7 +87,7 @@ namespace AppDemo_Selenium_IPMA.Service
                 var cidadeOption = selectLocation.Options
                     .FirstOrDefault(opt =>
                         !string.IsNullOrWhiteSpace(opt.GetAttribute("value")) &&
-                        opt.Text.Trim().Equals(cidade, StringComparison.OrdinalIgnoreCase))
+                        MesmoNome(opt.Text, cidade))
                     ?? throw new LocalNaoEncontradoException(
                         "Cidade não encontrada para o distrito indicado.");
 
@@ -88,6 +110,17 @@ namespace AppDemo_Selenium_IPMA.Service
                     }
                 });
 
+                // O cabecalho atualiza primeiro que a tabela semanal — em
+                // localidades menores (ex.: Agueda) chega-se a ler ".local-header"
+                // novo enquanto ".weekly-column.active" ainda nao foi renderizado,
+                // o que provoca NoSuchElementException em ExtrairDados. Aguardar
+                // explicitamente pela coluna ativa torna a extracao deterministica.
+                wait.Until(d =>
+                {
+                    try { return d.FindElement(By.CssSelector(".weekly-column.active")) != null; }
+                    catch { return false; }
+                });
+
                 return ExtrairDados(driver, cidadeOption.Text);
             }
             finally
@@ -98,6 +131,12 @@ namespace AppDemo_Selenium_IPMA.Service
                 driver.Quit();
             }
         }
+
+        // Compara dois nomes de localidade ignorando capitalização e acentos,
+        // recorrendo ao CompareInfo de pt-PT. Necessário porque o utilizador
+        // pode escrever "agueda" sem acento, enquanto o IPMA expõe "Águeda".
+        private static bool MesmoNome(string a, string b) =>
+            PtCompare.Compare(a.Trim(), b.Trim(), NomeCompareOpts) == 0;
 
         // Configuração do Chrome. Em headless: "--headless=new" ativa o headless
         // moderno (Chrome 109+) que renderiza a página de forma equivalente ao
